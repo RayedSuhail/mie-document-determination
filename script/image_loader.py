@@ -18,7 +18,9 @@ def get_path_and_category(path_category: str) -> (str, str):
 
 def fetch_img(img_path):
     try:
-        img = np.asarray(Image.open(f'../dataset/images/{img_path}'))
+        file = Image.open(f'../dataset/images/{img_path}')
+        img = np.asarray(file.resize((100, 150), Image.ANTIALIAS).copy())
+        file.close()
         return img
     except Exception as e:
         print(e)
