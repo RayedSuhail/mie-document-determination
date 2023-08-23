@@ -6,6 +6,7 @@ Created on Tue Jul  4 14:33:44 2023
 """
 
 import random
+import copy
 from PIL import Image
 import numpy as np
 from typing import List
@@ -19,9 +20,8 @@ def get_path_and_category(path_category: str) -> (str, str):
 
 def fetch_img(img_path: str) -> np.ndarray:
     try:
-        file = Image.open(f'../dataset/images/{img_path}')
-        img = np.asarray(file.resize((100, 150), Image.ANTIALIAS).copy())
-        file.close()
+        file = copy.deepcopy(Image.open(f'../dataset/images/{img_path}').resize((75, 100), Image.ANTIALIAS))
+        img = np.asarray(file)
         return img
     except Exception as e:
         print(e)
