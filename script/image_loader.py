@@ -35,5 +35,5 @@ def get_all_imgs_dictlist(paths: dict) -> List[dict]:
     for key in paths:
         for path_category in generate_labels_for_category(paths[key]):
             path, category = get_path_and_category(path_category)
-            all_imgs.append({'path': path, 'category': category.strip()})
+            all_imgs.append({'path': path, 'category': int(category.strip()), 'type': key})
     return all_imgs
