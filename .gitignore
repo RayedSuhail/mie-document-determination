@@ -1,1 +1,3 @@
 dataset/images/*
+
+script/__pycache__
