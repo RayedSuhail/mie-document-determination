@@ -4,101 +4,183 @@ Created on Fri Jul 10 11:02:04 2023
 
 @author: ahmad104
 """
+import tensorflow as tf
 
-from keras.models import Sequential, Model
+import keras
+from keras.models import Model
 from keras.layers import Dense, BatchNormalization, Add, Input
 from keras.layers import Dropout, Flatten, Activation
 from keras.layers import Conv2D, MaxPooling2D, AveragePooling2D
+from keras.layers import Lambda
 from keras.regularizers import l2
 
-def OS_CNN():
-    model = Sequential()
-    model.add(Conv2D(64, (10,10), activation='relu', input_shape = (100, 150, 1), kernel_regularizer=l2(2e-4)))
-    model.add(MaxPooling2D())
-    model.add(Conv2D(128, (7,7), activation='relu', kernel_regularizer=l2(2e-4)))
-    model.add(MaxPooling2D())
-    model.add(Conv2D(128, (4,4), activation='relu', kernel_regularizer=l2(2e-4)))
-    model.add(MaxPooling2D())
-    model.add(Conv2D(256, (4,4), activation='relu', kernel_regularizer=l2(2e-4)))
-    model.add(Flatten())
-    model.add(Dense(4096, activation='sigmoid', kernel_regularizer=l2(1e-3)))
+INPUT_SHAPE = (100, 75, 1)
+NUM_CLASSES = 16
+MODELS_LIST = ['Siamese_Contrastive', 'OneShot', 'AlexNet', 'VGGNet', 'ResNet']
+
+def euclidean_distance(vects):
+    """Find the Euclidean distance between two vectors.
+
+    Arguments:
+        vects: List containing two tensors of same length.
+
+    Returns:
+        Tensor containing euclidean distance
+        (as floating point value) between vectors.
+    """
+
+    x, y = vects
+    sum_square = tf.math.reduce_sum(tf.math.square(x - y), axis=1, keepdims=True)
+    return tf.math.sqrt(tf.math.maximum(sum_square, tf.keras.backend.epsilon()))
+
+def create_siamese_network(base_model: str, model_name: str) -> keras.engine.functional.Functional:
+    if base_model not in MODELS_LIST:
+        raise TypeError('Wrong Model ID string')
+
+    if base_model == 'Siamese_Contrastive':
+        model = SC_CNN()
+    if base_model == 'OneShot':
+        model = OS_CNN()
+    if base_model == 'AlexNet':
+        model = AlexNet_CNN()
+    if base_model == 'VGGNet':
+        model = VGGNet_CNN()
+    if base_model == 'ResNet':
+        model = ResNet_CNN()
+    
+    input_l = Input(INPUT_SHAPE)
+    input_r = Input(INPUT_SHAPE)
+
+    model_l = model(input_l)
+    model_r = model(input_r)
+
+    interim_model = Lambda(euclidean_distance)([model_l, model_r])
+    interim_model = BatchNormalization()(interim_model)
+    interim_model = Dense(1, activation = 'sigmoid')(interim_model)
+
+    siamese_model = Model(inputs = [input_l, input_r], outputs = interim_model, name = model_name)
+    return siamese_model
+
+def SC_CNN() -> keras.engine.functional.Functional:
+    input_x = Input(INPUT_SHAPE)
+
+    X = BatchNormalization()(input_x)
+    X = Conv2D(4, (5, 5), activation="tanh")(X)
+    X = AveragePooling2D(pool_size=(2, 2))(X)
+    X = Conv2D(16, (5, 5), activation="tanh")(X)
+    X = AveragePooling2D(pool_size=(2, 2))(X)
+    X = Flatten()(X)
+    
+    X = BatchNormalization()(X)
+    X = Dense(10, activation="tanh")(X)
+    model = Model(inputs = input_x, outputs = X, name = 'Siamese_Contrastive')
+
     return model
 
-def AlexNet_CNN():
-    model = Sequential()
-    model.add(Conv2D(96, kernel_size=(11,11), strides= 4,
+def OS_CNN() -> keras.engine.functional.Functional:
+    input_x = Input(INPUT_SHAPE)
+
+    X = Conv2D(64, (10,10), activation='relu', kernel_regularizer=l2(2e-4))(input_x)
+    X = MaxPooling2D()(X)
+
+    X = Conv2D(128, (7,7), activation='relu', kernel_regularizer=l2(2e-4))(X)
+    X = MaxPooling2D()(X)
+
+    X = Conv2D(128, (4,4), activation='relu', kernel_regularizer=l2(2e-4))(X)
+    X = MaxPooling2D()(X)
+
+    X = Conv2D(256, (4,4), activation='relu', kernel_regularizer=l2(2e-4))(X)
+
+    X = Flatten()(X)
+    X = Dense(4096, activation='relu', kernel_regularizer=l2(1e-3))(X)
+
+    X = Dense(NUM_CLASSES, activation= 'softmax')(X)
+
+    model = Model(inputs = input_x, outputs = X, name = 'OneShot')
+
+    return model
+
+def AlexNet_CNN() -> keras.engine.functional.Functional:
+    input_x = Input(INPUT_SHAPE)
+
+    X = Conv2D(96, kernel_size=(11,11), strides= 4,
                         padding= 'valid', activation= 'relu',
-                        input_shape = (100, 150, 1),
-                        kernel_initializer= 'he_normal'))
-    model.add(MaxPooling2D(pool_size=(3,3), strides= (2,2),
-                          padding= 'valid', data_format= None))
+                        kernel_initializer = 'he_normal')(input_x)
+    X = MaxPooling2D(pool_size=(3,3), strides= (2,2),
+                          padding= 'valid', data_format= None)(X)
 
-    model.add(Conv2D(256, kernel_size=(5,5), strides= 1,
+    X = Conv2D(256, kernel_size=(5,5), strides= 1,
                     padding= 'same', activation= 'relu',
-                    kernel_initializer= 'he_normal'))
-    model.add(MaxPooling2D(pool_size=(3,3), strides= (2,2),
-                          padding= 'valid', data_format= None)) 
+                    kernel_initializer = 'he_normal')(X)
+    X = MaxPooling2D(pool_size=(3,3), strides= (2,2),
+                          padding= 'valid', data_format= None)(X)
 
-    model.add(Conv2D(384, kernel_size=(3,3), strides= 1,
+    X = Conv2D(384, kernel_size=(3,3), strides= 1,
                     padding= 'same', activation= 'relu',
-                    kernel_initializer= 'he_normal'))
+                    kernel_initializer = 'he_normal')(X)
 
-    model.add(Conv2D(384, kernel_size=(3,3), strides= 1,
+    X = Conv2D(384, kernel_size=(3,3), strides= 1,
                     padding= 'same', activation= 'relu',
-                    kernel_initializer= 'he_normal'))
+                    kernel_initializer = 'he_normal')(X)
 
-    model.add(Conv2D(256, kernel_size=(3,3), strides= 1,
+    X = Conv2D(256, kernel_size=(3,3), strides= 1,
                     padding= 'same', activation= 'relu',
-                    kernel_initializer= 'he_normal'))
+                    kernel_initializer = 'he_normal')(X)
 
-    model.add(MaxPooling2D(pool_size=(3,3), strides= (2,2),
-                          padding= 'valid', data_format= None))
+    X = MaxPooling2D(pool_size=(3,3), strides= (2,2),
+                          padding= 'valid', data_format= None)(X)
     
-    model.add(Dropout(0.5))
-    model.add(Flatten())
-    model.add(Dense(4096, activation= 'relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(4096, activation= 'relu'))
-    model.add(Dense(1000, activation= 'relu'))
-    model.add(Dense(16, activation= 'softmax'))
+    X = Dropout(0.5)(X)
+    X = Flatten()(X)
+    X = Dense(4096, activation= 'relu')(X)
+    X = Dropout(0.5)(X)
+
+    X = Dense(4096, activation= 'relu')(X)
+    X = Dense(1000, activation= 'relu')(X)
+
+    X = Dense(NUM_CLASSES, activation= 'softmax')(X)
+
+    model = Model(inputs = input_x, outputs = X, name = 'AlexNet')
     
     return model
 
-def VGGNet_CNN():
-    model = Sequential()
-    model.add(Conv2D(filters=64, kernel_size=(3,3), padding="same", activation="relu", input_shape = (100, 150, 1)))
-    model.add(Conv2D(filters=64, kernel_size=(3,3), padding="same", activation="relu"))
-    model.add(MaxPooling2D((2, 2)))
-    
-    model.add(Conv2D(filters=128, kernel_size=(3,3), padding="same", activation="relu"))
-    model.add(Conv2D(filters=128, kernel_size=(3,3), padding="same", activation="relu"))
-    model.add(MaxPooling2D((2, 2)))
-    
-    model.add(Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu"))
-    model.add(Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu"))
-    model.add(Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu"))
-    model.add(MaxPooling2D((2, 2)))
-    
-    model.add(Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu"))
-    model.add(Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu"))
-    model.add(Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu"))
-    model.add(MaxPooling2D((2, 2)))
-    
-    model.add(Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu"))
-    model.add(Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu"))
-    model.add(Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu"))
-    model.add(MaxPooling2D((2, 2)))
-    
-    model.add(Dropout(0.5))
-    model.add(Flatten())
-    model.add(Dense(4096, activation="relu"))
-    model.add(Dropout(0.5))
-    model.add(Dense(4096, activation="relu"))
-    model.add(Dense(16, activation="softmax"))
+def VGGNet_CNN() -> keras.engine.functional.Functional:
+    input_x = Input(INPUT_SHAPE)
+
+    X = Conv2D(filters=64, kernel_size=(3,3), padding="same", activation="relu")(input_x)
+    X = Conv2D(filters=64, kernel_size=(3,3), padding="same", activation="relu")(X)
+    X = MaxPooling2D((2, 2))(X)
+
+    X = Conv2D(filters=128, kernel_size=(3,3), padding="same", activation="relu")(X)
+    X = Conv2D(filters=128, kernel_size=(3,3), padding="same", activation="relu")(X)
+    X = MaxPooling2D((2, 2))(X)
+
+    X = Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu")(X)
+    X = Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu")(X)
+    X = Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu")(X)
+    X = MaxPooling2D((2, 2))(X)
+
+    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu")(X)
+    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu")(X)
+    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu")(X)
+    X = MaxPooling2D((2, 2))(X)
+
+    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu")(X)
+    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu")(X)
+    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu")(X)
+    X = MaxPooling2D((2, 2))(X)
+
+    X = Flatten()(X)
+    X = Dense(4096, activation="relu")(X)
+    X = Dense(4096, activation="relu")(X)
+
+    X = Dense(NUM_CLASSES, activation="softmax")(X)
+
+    model = Model(inputs = input_x, outputs = X, name = 'VGGNet16')
 
     return model
 
-def identity_block(X, f, filters, stage, block):
+def identity_block(X, f, filters, stage, block) -> keras.engine.functional.Functional:
    
     conv_name_base = 'res' + str(stage) + block + '_branch'
     bn_name_base = 'bn' + str(stage) + block + '_branch'
@@ -122,7 +204,7 @@ def identity_block(X, f, filters, stage, block):
 
     return X
 
-def convolutional_block(X, f, filters, stage, block, s=2):
+def convolutional_block(X, f, filters, stage, block, s=2) -> keras.engine.functional.Functional:
    
     conv_name_base = 'res' + str(stage) + block + '_branch'
     bn_name_base = 'bn' + str(stage) + block + '_branch'
@@ -151,10 +233,10 @@ def convolutional_block(X, f, filters, stage, block, s=2):
     return X
 
 
-def ResNet_CNN():
-    X_input = Input((100, 150, 1))
+def ResNet_CNN() -> keras.engine.functional.Functional:
+    input_x = Input(INPUT_SHAPE)
 
-    X = Conv2D(64, (7, 7), strides=(2, 2), name='conv1')(X_input)
+    X = Conv2D(64, (7, 7), strides=(2, 2), name='conv1')(input_x)
     X = BatchNormalization(axis=3, name='bn_conv1')(X)
     X = Activation('relu')(X)
     X = MaxPooling2D((3, 3), strides=(2, 2))(X)
@@ -181,7 +263,13 @@ def ResNet_CNN():
     X = identity_block(X, 3, [512, 512, 2048], stage=5, block='c')
 
     X = AveragePooling2D(pool_size=(2, 2), padding='same')(X)
+
+    X = Flatten()(X)
+    X = Dense(256, activation='relu', name='fc1')(X)
+    X = Dense(128, activation='relu', name='fc2')(X)
     
-    model = Model(inputs=X_input, outputs=X, name='ResNet50')
+    X = Dense(NUM_CLASSES, activation='softmax', name='fc3')(X)
+    
+    model = Model(inputs=input_x, outputs = X, name = 'ResNet50')
 
     return model
