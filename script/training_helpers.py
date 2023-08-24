@@ -12,6 +12,9 @@ import random
 import numpy as np
 import tensorflow as tf
 
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+
+
 TOTAL_TRAINING = 32000
 TOTAL_TESTING = 4000
 TOTAL_VALIDATION = 4000
@@ -37,6 +40,17 @@ class DataGenerator(tf.keras.utils.Sequence):
         batch_y = self.y[low:high]
 
         return (np.array([fetch_img(pair[0]) for pair in batch_x]), np.array([fetch_img(pair[1]) for pair in batch_x])), np.array(batch_y)
+
+def model_checkpoint(save_dir: str, metric: str):
+    early_stopping = EarlyStopping(monitor=metric,
+                              min_delta=0,
+                              patience=3,
+                              verbose=1,
+                              restore_best_weights=True)
+    checkpoint = tf.keras.callbacks.ModelCheckpoint(save_dir, 
+                monitor=metric, verbose=1, 
+                save_best_only=True)
+    return [early_stopping]
 
 def loss(margin=1):
     # Contrastive loss = mean( (1-true_value) * square(prediction) +
