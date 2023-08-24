@@ -28,10 +28,10 @@ This project aims to develop a deep learning network that utilizes a few-shot or
 - [ ] Setup access to Tesla hardware for model training
 - [x] ~Gather alternate dataset for developing proof-of-concept~
 - [x] ~Setup environment for model training~
-- [ ] Prepare dataset to be used for training, testing, and validation purposes
-- [ ] Design model architecture for document classification
-- [ ] Choose appropriate hyperparameters to maximize performance
-- [ ] Code appropriate algorithm for few-shot learning
+- [x] ~Prepare dataset to be used for training, testing, and validation purposes~
+- [x] ~Design model architecture for document classification~
+- [x] ~Choose appropriate hyperparameters to maximize performance~
+- [x] ~Code appropriate algorithm for few-shot learning~
 - [ ] Record performance and visuals to be utilized in video
 
 ## Setting up Anaconda Environment
