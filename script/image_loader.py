@@ -20,8 +20,10 @@ def get_path_and_category(path_category: str) -> (str, str):
 
 def fetch_img(img_path: str) -> np.ndarray:
     try:
-        file = copy.deepcopy(Image.open(f'../dataset/images/{img_path}').resize((75, 100), Image.ANTIALIAS))
+        open_file = Image.open(f'../dataset/images/{img_path}')
+        file = copy.deepcopy(open_file.resize((75, 100), Image.ANTIALIAS))
         img = np.asarray(file)
+        open_file.close()
         return img
     except Exception as e:
         print(e)
