@@ -58,7 +58,7 @@ def create_siamese_network(base_model: str, model_name: str) -> keras.engine.fun
     interim_model = BatchNormalization()(interim_model)
     interim_model = Dense(1, activation = 'sigmoid')(interim_model)
 
-    siamese_model = Model(inputs = [input_l, input_r], outputs = interim_model, name = model_name)
+    siamese_model = Model(inputs = [input_l, input_r], outputs = interim_model, name = f'{base_model}_{model_name}')
     return siamese_model
 
 def SC_CNN() -> keras.engine.functional.Functional:
@@ -80,7 +80,8 @@ def SC_CNN() -> keras.engine.functional.Functional:
 def OS_CNN() -> keras.engine.functional.Functional:
     input_x = Input(INPUT_SHAPE)
 
-    X = Conv2D(64, (10,10), activation='relu', kernel_regularizer=l2(2e-4))(input_x)
+    X = BatchNormalization()(input_x)
+    X = Conv2D(64, (10,10), activation='relu', kernel_regularizer=l2(2e-4))(X)
     X = MaxPooling2D()(X)
 
     X = Conv2D(128, (7,7), activation='relu', kernel_regularizer=l2(2e-4))(X)
@@ -103,9 +104,10 @@ def OS_CNN() -> keras.engine.functional.Functional:
 def AlexNet_CNN() -> keras.engine.functional.Functional:
     input_x = Input(INPUT_SHAPE)
 
+    X = BatchNormalization()(input_x)
     X = Conv2D(96, kernel_size=(11,11), strides= 4,
                         padding= 'valid', activation= 'relu',
-                        kernel_initializer = 'he_normal')(input_x)
+                        kernel_initializer = 'he_normal')(X)
     X = MaxPooling2D(pool_size=(3,3), strides= (2,2),
                           padding= 'valid', data_format= None)(X)
 
@@ -147,7 +149,8 @@ def AlexNet_CNN() -> keras.engine.functional.Functional:
 def VGGNet_CNN() -> keras.engine.functional.Functional:
     input_x = Input(INPUT_SHAPE)
 
-    X = Conv2D(filters=64, kernel_size=(3,3), padding="same", activation="relu")(input_x)
+    X = BatchNormalization()(input_x)
+    X = Conv2D(filters=64, kernel_size=(3,3), padding="same", activation="relu")(X)
     X = Conv2D(filters=64, kernel_size=(3,3), padding="same", activation="relu")(X)
     X = MaxPooling2D((2, 2))(X)
 
