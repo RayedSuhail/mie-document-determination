@@ -48,4 +48,6 @@ While in this environment you can utilize the same packages that were utilized i
 `spyder`
 
 ## Using this repo
-Once you have your IDE and environment set up, you can easily run the files found in this repository. In case you are unable to see any output or face an error when running a piece of code, please ensure that you read the comments associated with the code block and understand the requirements of the function or snippet of code.
+Once you have your IDE and environment set up, you can easily run the files found in this repository. Please use the [model_training.py](script/model_training.py) file as your basepoint to start the model training and use the constant variables noted from `lines 20-32` to control directory paths and hyperparameters of the model. If you have already saved model weights for each model noted in `MODELS_LIST` variable in the [model_creation.py](script/model_creation.py) file, you can update `line 93` in [model_training.py](script/model_training.py) file from `run_training_process(False)` to `run_training_process(True)`
+
+In case you are unable to see any output or face an error when running a piece of code, please ensure that you read the comments associated with the code block and understand the requirements of the function or snippet of code.
