@@ -14,9 +14,7 @@ from keras.layers import Conv2D, MaxPooling2D, AveragePooling2D
 from keras.layers import Lambda
 from keras.regularizers import l2
 
-INPUT_SHAPE = (100, 75, 1)
-NUM_CLASSES = 16
-MODELS_LIST = ['Siamese_Contrastive', 'OneShot', 'AlexNet', 'VGGNet', 'ResNet']
+from utils import INPUT_SHAPE, NUM_CLASSES, MODELS_TYPES
 
 def euclidean_distance(vects):
     """Find the Euclidean distance between two vectors.
@@ -33,20 +31,19 @@ def euclidean_distance(vects):
     sum_square = tf.math.reduce_sum(tf.math.square(x - y), axis=1, keepdims=True)
     return tf.math.sqrt(tf.math.maximum(sum_square, tf.keras.backend.epsilon()))
 
-def create_siamese_network(base_model: str, model_name: str) -> keras.engine.functional.Functional:
-    if base_model not in MODELS_LIST:
-        raise TypeError('Wrong Model ID string')
-
-    if base_model == 'Siamese_Contrastive':
+def create_siamese_network(base_model: str) -> keras.engine.functional.Functional:
+    if base_model == MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value:
         model = SC_CNN()
-    if base_model == 'OneShot':
+    elif base_model == MODELS_TYPES.ONE_SHOT_LEARNING.value:
         model = OS_CNN()
-    if base_model == 'AlexNet':
+    elif base_model == MODELS_TYPES.ALEX_NET.value:
         model = AlexNet_CNN()
-    if base_model == 'VGGNet':
+    elif base_model == MODELS_TYPES.VGG_NET_16.value:
         model = VGGNet_CNN()
-    if base_model == 'ResNet':
+    elif base_model == MODELS_TYPES.RES_NET_50.value:
         model = ResNet_CNN()
+    else:
+        raise TypeError('Wrong Model ID string')
     
     input_l = Input(INPUT_SHAPE)
     input_r = Input(INPUT_SHAPE)
@@ -58,10 +55,10 @@ def create_siamese_network(base_model: str, model_name: str) -> keras.engine.fun
     interim_model = BatchNormalization()(interim_model)
     interim_model = Dense(1, activation = 'sigmoid')(interim_model)
 
-    siamese_model = Model(inputs = [input_l, input_r], outputs = interim_model, name = f'{base_model}_{model_name}')
+    siamese_model = Model(inputs = [input_l, input_r], outputs = interim_model, name = f'{base_model}_Siamese')
     return siamese_model
 
-def SC_CNN() -> keras.engine.functional.Functional:
+def SC_CNN(model_name: str = MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value) -> keras.engine.functional.Functional:
     input_x = Input(INPUT_SHAPE)
 
     X = BatchNormalization()(input_x)
@@ -72,12 +69,12 @@ def SC_CNN() -> keras.engine.functional.Functional:
     X = Flatten()(X)
     
     X = BatchNormalization()(X)
-    X = Dense(10, activation="tanh")(X)
-    model = Model(inputs = input_x, outputs = X, name = 'Siamese_Contrastive')
+    X = Dense(NUM_CLASSES, activation="tanh")(X)
+    model = Model(inputs = input_x, outputs = X, name = model_name)
 
     return model
 
-def OS_CNN() -> keras.engine.functional.Functional:
+def OS_CNN(model_name: str = MODELS_TYPES.ONE_SHOT_LEARNING.value) -> keras.engine.functional.Functional:
     input_x = Input(INPUT_SHAPE)
 
     X = BatchNormalization()(input_x)
@@ -97,11 +94,11 @@ def OS_CNN() -> keras.engine.functional.Functional:
 
     X = Dense(NUM_CLASSES, activation= 'softmax')(X)
 
-    model = Model(inputs = input_x, outputs = X, name = 'OneShot')
+    model = Model(inputs = input_x, outputs = X, name = model_name)
 
     return model
 
-def AlexNet_CNN() -> keras.engine.functional.Functional:
+def AlexNet_CNN(model_name: str = MODELS_TYPES.ALEX_NET.value) -> keras.engine.functional.Functional:
     input_x = Input(INPUT_SHAPE)
 
     X = BatchNormalization()(input_x)
@@ -142,11 +139,11 @@ def AlexNet_CNN() -> keras.engine.functional.Functional:
 
     X = Dense(NUM_CLASSES, activation= 'softmax')(X)
 
-    model = Model(inputs = input_x, outputs = X, name = 'AlexNet')
+    model = Model(inputs = input_x, outputs = X, name = model_name)
     
     return model
 
-def VGGNet_CNN() -> keras.engine.functional.Functional:
+def VGGNet_CNN(model_name: str = MODELS_TYPES.VGG_NET_16.value) -> keras.engine.functional.Functional:
     input_x = Input(INPUT_SHAPE)
 
     X = BatchNormalization()(input_x)
@@ -179,7 +176,7 @@ def VGGNet_CNN() -> keras.engine.functional.Functional:
 
     X = Dense(NUM_CLASSES, activation="softmax")(X)
 
-    model = Model(inputs = input_x, outputs = X, name = 'VGGNet16')
+    model = Model(inputs = input_x, outputs = X, name = model_name)
 
     return model
 
@@ -236,7 +233,7 @@ def convolutional_block(X, f, filters, stage, block, s=2) -> keras.engine.functi
     return X
 
 
-def ResNet_CNN() -> keras.engine.functional.Functional:
+def ResNet_CNN(model_name: str = MODELS_TYPES.RES_NET_50.value) -> keras.engine.functional.Functional:
     input_x = Input(INPUT_SHAPE)
 
     X = Conv2D(64, (7, 7), strides=(2, 2), name='conv1')(input_x)
@@ -273,6 +270,6 @@ def ResNet_CNN() -> keras.engine.functional.Functional:
     
     X = Dense(NUM_CLASSES, activation='softmax', name='fc3')(X)
     
-    model = Model(inputs=input_x, outputs = X, name = 'ResNet50')
+    model = Model(inputs=input_x, outputs = X, name = model_name)
 
     return model
