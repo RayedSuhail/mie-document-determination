@@ -25,6 +25,11 @@ TO_SHOW = 6
 NUM_COL = 3
 
 # =============================================================================
+# Utils for image_loader.py
+# =============================================================================
+FORBIDDEN_LIST_PATH = '../dataset/labels/invalid_imgs.txt'
+
+# =============================================================================
 # Utils for model_creation.py
 # =============================================================================
 INPUT_SHAPE = (100, 75, 1)
@@ -39,7 +44,7 @@ class MODELS_TYPES(BaseEnum):
 # =============================================================================
 # Utils for model_training.py
 # =============================================================================
-MODEL_SAVE_PATH = '../models/{model_name}/model_final'
+MODEL_SAVE_PATH = '../models/{model_name}/model_final.keras'
 HISTORY_SAVE_PATH = '../results/{model_name}_history'
 MONITORING_METRIC = 'accuracy'
 

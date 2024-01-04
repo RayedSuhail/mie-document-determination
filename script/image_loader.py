@@ -12,7 +12,7 @@ from typing import List
 import tensorflow as tf
 import math
 
-from utils import LABEL_PATHS, TOTAL_TRAINING, TOTAL_TESTING, TOTAL_VALIDATION, INPUT_SHAPE
+from utils import LABEL_PATHS, TOTAL_TRAINING, TOTAL_TESTING, TOTAL_VALIDATION, INPUT_SHAPE, FORBIDDEN_LIST_PATH
 
 # Here, `x_set` is list of path to the images
 # and `y_set` are the associated classes.
@@ -33,6 +33,8 @@ class DataGenerator(tf.keras.utils.Sequence):
         batch_y = self.y[low:high]
 
         return (np.array([fetch_img(pair[0]) for pair in batch_x]), np.array([fetch_img(pair[1]) for pair in batch_x])), np.array(batch_y)
+
+
 
 def read_file_for_record_type(label_path: str) -> List[str]:
     return open(label_path).readlines()
@@ -62,8 +64,11 @@ def sample_random_imgs(img_type: LABEL_PATHS, all_imgs: dict) -> List[np.ndarray
 
 def get_all_imgs_dictlist() -> List[dict]:
     all_imgs = list()
+    forbidden_list = [img.strip() for img in read_file_for_record_type(FORBIDDEN_LIST_PATH)]
     for label_type in LABEL_PATHS:
         for path_category in read_file_for_record_type(label_type.value):
             path, category = get_path_and_category(path_category)
+            if path in forbidden_list:
+                continue
             all_imgs.append({'path': path, 'category': int(category.strip()), 'type': label_type.name})
     return all_imgs
