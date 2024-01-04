@@ -13,7 +13,7 @@ import pickle
 
 from keras.callbacks import History
 
-from utils import BATCH_SIZE, MODEL_SAVE_PATH, HISTORY_SAVE_PATH, TO_SHOW, NUM_COL
+from utils import BATCH_SIZE, HISTORY_SAVE_PATH, TO_SHOW, NUM_COL
 from image_loader import DataGenerator
 
 def visualize(pairs, labels, predictions=None, test=False):
@@ -83,8 +83,6 @@ def display_test_data(model, pairs_test, labels_test):
     visualize(pairs_test, labels_test, predictions=predictions, test=True)
 
 def display_model_info(model, model_path, pairs_test, labels_test):
-    model.load_weights(model_path)
-    
     history = History()
     
     with open(HISTORY_SAVE_PATH.format(model_name = model.name), "rb") as file_pi:

@@ -8,6 +8,7 @@ Created on Fri Jul 18 21:38:20 2023
 import pickle
 import multiprocessing
 import os
+import keras
 
 from training_helpers import get_train_test_val, loss, model_checkpoint
 from model_creation import create_siamese_network
@@ -25,9 +26,10 @@ def run_training_process(model: MODELS_TYPES):
 
     model_path = MODEL_SAVE_PATH.format(model_name = siamese.name)
     
-    # if os.path.exists(f'{model_path}.index'):
-    #     display_model_info(siamese, model_path, pairs_test, labels_test)
-    #     return
+    if os.path.exists(model_path):
+        siamese = keras.models.load_model(model_path)
+        display_model_info(siamese, model_path, pairs_test, labels_test)
+        return
     
     visualize(pairs_train[:-1], labels_train[:-1])
     visualize(pairs_val[:-1], labels_val[:-1])
@@ -42,17 +44,17 @@ def run_training_process(model: MODELS_TYPES):
         callbacks=model_checkpoint(model_path, MONITORING_METRIC),
     )
     
-    siamese.save_weights(model_path)
+    siamese.save(model_path)
     
     with open(HISTORY_SAVE_PATH.format(model_name = siamese.name), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
 if __name__ == "__main__":
-    run_training_process(MODELS_TYPES.ONE_SHOT_LEARNING.value)
-    # for model in MODELS_TYPES:
-    #     if model == MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE:
-    #         continue
-    #     run_training_process(model.value)
-        # p = multiprocessing.Process(target=run_training_process, kwargs={"model": model.value})
-        # p.start()
-        # p.join()
+    for model in MODELS_TYPES:
+        # Code to run when training each model so as to not overburden CPU/GPU
+        p = multiprocessing.Process(target=run_training_process, kwargs={"model": model.value})
+        p.start()
+        p.join()
+        
+        # Code to run when all models have been trained and you just need to visualize data
+        # run_training_process(model.value)
