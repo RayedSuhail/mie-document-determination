@@ -13,10 +13,10 @@ import pickle
 
 from keras.callbacks import History
 
-from utils import BATCH_SIZE, HISTORY_SAVE_PATH, TO_SHOW, NUM_COL
+from utils import BATCH_SIZE, HISTORY_SAVE_PATH, IMAGE_TYPES, IMAGE_SAVE_PATH, TO_SHOW, NUM_COL
 from image_loader import DataGenerator
 
-def visualize(pairs, labels, predictions=None, test=False):
+def visualize(pairs, labels, model_name, predictions=None, test=False, pairs_type='Pairs'):
     # Define num_row
     # If to_show % num_col != 0
     #    trim to_show,
@@ -37,7 +37,7 @@ def visualize(pairs, labels, predictions=None, test=False):
     to_show = num_row * NUM_COL
 
     # Plot the images
-    fig, axes = plt.subplots(num_row, NUM_COL, figsize=(5, 5))
+    fig, axes = plt.subplots(num_row, NUM_COL)
     for i in range(to_show):
 
         # If the number of rows is 1, the axes array is one-dimensional
@@ -54,41 +54,49 @@ def visualize(pairs, labels, predictions=None, test=False):
             ax.set_title("Label: {}".format(labels[i]))
     if test:
         plt.tight_layout(rect=(0, 0, 1.9, 1.9), w_pad=0.0)
+        save_path = IMAGE_SAVE_PATH.format(model_name=model_name, image_type=IMAGE_TYPES.MODEL_PREDICTIONS.value)
     else:
         plt.tight_layout(rect=(0, 0, 1.5, 1.5))
+        save_path = IMAGE_SAVE_PATH.format(model_name =model_name, image_type=pairs_type)
+    plt.savefig(save_path, dpi=900, bbox_inches="tight")
     plt.show()
 
-def plt_metric(history, metric, title, has_valid=True):
+def plt_metric(history, metric, title, model_name, has_valid=True):
     plt.plot(history[metric])
     if has_valid:
         plt.plot(history["val_" + metric])
         plt.legend(["train", "validation"], loc="upper left")
+    if metric == "accuracy":
+        save_path = IMAGE_SAVE_PATH.format(model_name=model_name, image_type=IMAGE_TYPES.MODEL_ACCURACY.value)
+    elif metric == "loss":
+        save_path = IMAGE_SAVE_PATH.format(model_name=model_name, image_type=IMAGE_TYPES.MODEL_LOSS.value)
     plt.title(title)
     plt.ylabel(metric)
     plt.xlabel("epoch")
+    plt.savefig(save_path, dpi=900, bbox_inches="tight")
     plt.show()
 
-def display_history_plots(history):
+def display_history_plots(history, model_name):
     # Plot the accuracy
-    plt_metric(history=history.history, metric="accuracy", title="Model accuracy")
+    plt_metric(history=history.history, metric="accuracy", title="Model accuracy", model_name=model_name)
     
     # Plot the contrastive loss
-    plt_metric(history=history.history, metric="loss", title="Contrastive Loss")
+    plt_metric(history=history.history, metric="loss", title="Contrastive Loss", model_name=model_name)
 
 def display_test_data(model, pairs_test, labels_test):
     results = model.evaluate(DataGenerator(pairs_test, labels_test, BATCH_SIZE))
     print("test loss, test acc:", results)
     
     predictions = model.predict(DataGenerator(pairs_test, labels_test, BATCH_SIZE))
-    visualize(pairs_test, labels_test, predictions=predictions, test=True)
+    visualize(pairs_test, labels_test, predictions=predictions, test=True, model_name=model.name)
 
-def display_model_info(model, model_path, pairs_test, labels_test):
+def display_model_info(model, pairs_test, labels_test):
     history = History()
     
-    with open(HISTORY_SAVE_PATH.format(model_name = model.name), "rb") as file_pi:
+    with open(HISTORY_SAVE_PATH.format(model_name=model.name), "rb") as file_pi:
         history.history = pickle.load(file_pi)
     
     print(f'\n\n------------------FOR MODEL: {model.name}------------------\n\n')
     
-    display_history_plots(history)
+    display_history_plots(history, model.name)
     display_test_data(model, pairs_test, labels_test)
