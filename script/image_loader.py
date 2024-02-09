@@ -40,18 +40,19 @@ def read_file_for_record_type(label_path: str) -> List[str]:
     return open(label_path).readlines()
 
 def get_path_and_category(path_category: str) -> (str, str):
-    return path_category.split(maxsplit = 1)
+    return path_category.split(maxsplit=1)
 
 def fetch_img(img_path: str) -> np.ndarray:
     try:
         with Image.open(f'../dataset/images/{img_path}') as open_file:
             open_file.load()
             resized = open_file.resize(INPUT_SHAPE[1::-1], Image.ANTIALIAS)
-            img = np.asarray(resized)
+            img = np.asarray(resized) / 255
             open_file.close()
         return img
     except Exception as e:
         print('Error while fetching from: ', img_path, '\n', e)
+        return np.zeros(INPUT_SHAPE[:-1])
 
 def sample_random_imgs(img_type: LABEL_PATHS, all_imgs: dict) -> List[np.ndarray]:
     if img_type == LABEL_PATHS.TRAINING.name:
