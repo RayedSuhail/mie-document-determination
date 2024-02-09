@@ -53,9 +53,9 @@ def create_siamese_network(base_model: str) -> keras.engine.functional.Functiona
 
     interim_model = Lambda(euclidean_distance)([model_l, model_r])
     interim_model = BatchNormalization()(interim_model)
-    interim_model = Dense(1, activation = 'sigmoid')(interim_model)
+    interim_model = Dense(1, activation='sigmoid')(interim_model)
 
-    siamese_model = Model(inputs = [input_l, input_r], outputs = interim_model, name = f'{base_model}_Siamese')
+    siamese_model = Model(inputs=[input_l, input_r], outputs=interim_model, name=f'delete/{base_model}_Siamese')
     return siamese_model
 
 def SC_CNN(model_name: str = MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value) -> keras.engine.functional.Functional:
@@ -70,7 +70,7 @@ def SC_CNN(model_name: str = MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value) -> ke
     
     X = BatchNormalization()(X)
     X = Dense(NUM_CLASSES, activation="tanh")(X)
-    model = Model(inputs = input_x, outputs = X, name = model_name)
+    model = Model(inputs=input_x, outputs=X, name=model_name)
 
     return model
 
@@ -94,7 +94,7 @@ def OS_CNN(model_name: str = MODELS_TYPES.ONE_SHOT_LEARNING.value) -> keras.engi
 
     X = Dense(NUM_CLASSES, activation= 'softmax')(X)
 
-    model = Model(inputs = input_x, outputs = X, name = model_name)
+    model = Model(inputs=input_x, outputs=X, name=model_name)
 
     return model
 
@@ -104,27 +104,27 @@ def AlexNet_CNN(model_name: str = MODELS_TYPES.ALEX_NET.value) -> keras.engine.f
     X = BatchNormalization()(input_x)
     X = Conv2D(96, kernel_size=(11,11), strides= 4,
                         padding= 'valid', activation= 'relu',
-                        kernel_initializer = 'he_normal')(X)
+                        kernel_initializer='he_normal')(X)
     X = MaxPooling2D(pool_size=(3,3), strides= (2,2),
                           padding= 'valid', data_format= None)(X)
 
     X = Conv2D(256, kernel_size=(5,5), strides= 1,
                     padding= 'same', activation= 'relu',
-                    kernel_initializer = 'he_normal')(X)
+                    kernel_initializer='he_normal')(X)
     X = MaxPooling2D(pool_size=(3,3), strides= (2,2),
                           padding= 'valid', data_format= None)(X)
 
     X = Conv2D(384, kernel_size=(3,3), strides= 1,
                     padding= 'same', activation= 'relu',
-                    kernel_initializer = 'he_normal')(X)
+                    kernel_initializer='he_normal')(X)
 
     X = Conv2D(384, kernel_size=(3,3), strides= 1,
                     padding= 'same', activation= 'relu',
-                    kernel_initializer = 'he_normal')(X)
+                    kernel_initializer='he_normal')(X)
 
     X = Conv2D(256, kernel_size=(3,3), strides= 1,
                     padding= 'same', activation= 'relu',
-                    kernel_initializer = 'he_normal')(X)
+                    kernel_initializer='he_normal')(X)
 
     X = MaxPooling2D(pool_size=(3,3), strides= (2,2),
                           padding= 'valid', data_format= None)(X)
@@ -139,7 +139,7 @@ def AlexNet_CNN(model_name: str = MODELS_TYPES.ALEX_NET.value) -> keras.engine.f
 
     X = Dense(NUM_CLASSES, activation= 'softmax')(X)
 
-    model = Model(inputs = input_x, outputs = X, name = model_name)
+    model = Model(inputs=input_x, outputs=X, name=model_name)
     
     return model
 
@@ -176,7 +176,7 @@ def VGGNet_CNN(model_name: str = MODELS_TYPES.VGG_NET_16.value) -> keras.engine.
 
     X = Dense(NUM_CLASSES, activation="softmax")(X)
 
-    model = Model(inputs = input_x, outputs = X, name = model_name)
+    model = Model(inputs=input_x, outputs=X, name=model_name)
 
     return model
 
@@ -258,7 +258,7 @@ def ResNet_CNN(model_name: str = MODELS_TYPES.RES_NET_50.value) -> keras.engine.
     X = identity_block(X, 3, [256, 256, 1024], stage=4, block='e')
     X = identity_block(X, 3, [256, 256, 1024], stage=4, block='f')
 
-    X = X = convolutional_block(X, f=3, filters=[512, 512, 2048], stage=5, block='a', s=2)
+    X = convolutional_block(X, f=3, filters=[512, 512, 2048], stage=5, block='a', s=2)
     X = identity_block(X, 3, [512, 512, 2048], stage=5, block='b')
     X = identity_block(X, 3, [512, 512, 2048], stage=5, block='c')
 
@@ -270,6 +270,6 @@ def ResNet_CNN(model_name: str = MODELS_TYPES.RES_NET_50.value) -> keras.engine.
     
     X = Dense(NUM_CLASSES, activation='softmax', name='fc3')(X)
     
-    model = Model(inputs=input_x, outputs = X, name = model_name)
+    model = Model(inputs=input_x, outputs=X, name=model_name)
 
     return model
