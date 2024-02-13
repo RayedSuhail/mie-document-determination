@@ -24,16 +24,16 @@ def run_training_process(model: MODELS_TYPES):
     siamese.compile(loss=loss(margin=MARGIN), optimizer="RMSprop", metrics=[MONITORING_METRIC])
     siamese.summary()
 
-    model_path = MODEL_SAVE_PATH.format(model_name = siamese.name)
+    model_path = MODEL_SAVE_PATH.format(model_name=siamese.name)
     
-    if os.path.exists(model_path):
-        siamese = keras.models.load_model(model_path)
-        display_model_info(siamese, model_path, pairs_test, labels_test)
+    if os.path.exists(f'{model_path}.index'):
+        siamese.load_weights(model_path)
+        display_model_info(siamese, pairs_test, labels_test)
         return
     
-    visualize(pairs_train[:-1], labels_train[:-1])
-    visualize(pairs_val[:-1], labels_val[:-1])
-    visualize(pairs_test[:-1], labels_test[:-1])
+    visualize(pairs_train[:-1], labels_train[:-1], model_name=siamese.name, pairs_type='Training_Pairs')
+    visualize(pairs_val[:-1], labels_val[:-1], model_name=siamese.name, pairs_type='Validation_Pairs')
+    visualize(pairs_test[:-1], labels_test[:-1], model_name=siamese.name, pairs_type='Testing_Pairs')
     
     
     history = siamese.fit(
@@ -44,9 +44,9 @@ def run_training_process(model: MODELS_TYPES):
         callbacks=model_checkpoint(model_path, MONITORING_METRIC),
     )
     
-    siamese.save(model_path)
+    siamese.save_weights(model_path)
     
-    with open(HISTORY_SAVE_PATH.format(model_name = siamese.name), 'wb') as file_pi:
+    with open(HISTORY_SAVE_PATH.format(model_name=siamese.name), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
 if __name__ == "__main__":

@@ -44,11 +44,18 @@ class MODELS_TYPES(BaseEnum):
 # =============================================================================
 # Utils for model_training.py
 # =============================================================================
-MODEL_SAVE_PATH = '../models/{model_name}/model_final.keras'
+class IMAGE_TYPES(BaseEnum):
+    MODEL_ACCURACY = 'Model_Accuracy'
+    MODEL_LOSS = 'Model_Loss'
+    MODEL_PREDICTIONS = 'Model_Predictions'
+    PAIR_VISUALIZATION = 'Pair_Visualization'
+
+MODEL_SAVE_PATH = '../models/{model_name}/model_final'
 HISTORY_SAVE_PATH = '../results/{model_name}_history'
+IMAGE_SAVE_PATH = '../results/{model_name}/{image_type}.png'
 MONITORING_METRIC = 'accuracy'
 
-EPOCHS = 1
+EPOCHS = 50
 BATCH_SIZE = 16
 MARGIN = 1  # Margin for contrastive loss.
 
@@ -60,6 +67,6 @@ class LABEL_PATHS(BaseEnum):
 # =============================================================================
 # Utils for training_helpers.py
 # =============================================================================
-TOTAL_TRAINING = 32000
-TOTAL_TESTING = 4000
-TOTAL_VALIDATION = 4000
+TOTAL_TRAINING = 32000 # 319954
+TOTAL_TESTING = 4000 # 40000
+TOTAL_VALIDATION = 4000 # 40000

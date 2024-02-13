@@ -7,7 +7,6 @@ Created on Tue Jul 22 13:24:19 2023
 
 from image_loader import get_all_imgs_dictlist, sample_random_imgs
 
-import math
 import random
 import numpy as np
 import tensorflow as tf
@@ -22,7 +21,7 @@ def model_checkpoint(save_dir: str, metric: str):
                               patience=3,
                               verbose=1,
                               restore_best_weights=True)
-    checkpoint = tf.keras.callbacks.ModelCheckpoint(save_dir, 
+    checkpoint = ModelCheckpoint(save_dir, 
                 monitor=metric, verbose=1, 
                 save_best_only=True)
     return [early_stopping]
