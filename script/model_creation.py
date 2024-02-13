@@ -5,6 +5,7 @@ Created on Fri Jul 10 11:02:04 2023
 @author: ahmad104
 """
 import tensorflow as tf
+import numpy as np
 
 import keras
 from keras.models import Model
@@ -31,6 +32,40 @@ def euclidean_distance(vects):
     sum_square = tf.math.reduce_sum(tf.math.square(x - y), axis=1, keepdims=True)
     return tf.math.sqrt(tf.math.maximum(sum_square, tf.keras.backend.epsilon()))
 
+def reduce_size(matrix, target, axis):
+    result = np.zeros_like(target)
+    mat_axis = matrix.shape[0]
+    target_axis = target.shape[0]
+    increments = mat_axis // target_axis
+    reshape_tuple = (*matrix.shape[:axis], -1, increments, *matrix.shape[axis + 1:])
+    matrix.reshape(reshape_tuple).mean(axis=axis+1)
+    return result
+
+def load_pretrained_weights(base_model: str, model: keras.engine.functional.Functional) -> keras.engine.functional.Functional:
+    if base_model == MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value:
+        pass
+    elif base_model == MODELS_TYPES.ONE_SHOT_LEARNING.value:
+        pass
+    elif base_model == MODELS_TYPES.ALEX_NET.value:
+        weights_dict = np.load('../models/trained_models/bvlc_alexnet.npy', allow_pickle=True, encoding='bytes').item()
+        for op_name in weights_dict:
+            weights = weights_dict[op_name]
+            if op_name == 'fc6':
+                weights[0] = reduce_size(weights[0], model.get_layer(op_name).get_weights()[0], 0)
+            if 'conv' in op_name and not op_name == 'conv3':
+                weights[0] = reduce_size(weights[0], model.get_layer(op_name).get_weights()[0], 2)
+            # print(op_name)
+            model.get_layer(op_name).set_weights(weights)
+            model.get_layer(op_name).trainable = False
+        return model
+    
+    elif base_model == MODELS_TYPES.VGG_NET_16.value:
+        pass
+    elif base_model == MODELS_TYPES.RES_NET_50.value:
+        pass
+    else:
+        raise TypeError('Wrong Model ID string')
+
 def create_siamese_network(base_model: str) -> keras.engine.functional.Functional:
     if base_model == MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value:
         model = SC_CNN()
@@ -38,6 +73,7 @@ def create_siamese_network(base_model: str) -> keras.engine.functional.Functiona
         model = OS_CNN()
     elif base_model == MODELS_TYPES.ALEX_NET.value:
         model = AlexNet_CNN()
+        model = load_pretrained_weights(base_model, model)
     elif base_model == MODELS_TYPES.VGG_NET_16.value:
         model = VGGNet_CNN()
     elif base_model == MODELS_TYPES.RES_NET_50.value:
@@ -102,42 +138,44 @@ def AlexNet_CNN(model_name: str = MODELS_TYPES.ALEX_NET.value) -> keras.engine.f
     input_x = Input(INPUT_SHAPE)
 
     X = BatchNormalization()(input_x)
-    X = Conv2D(96, kernel_size=(11,11), strides= 4,
-                        padding= 'valid', activation= 'relu',
-                        kernel_initializer='he_normal')(X)
-    X = MaxPooling2D(pool_size=(3,3), strides= (2,2),
-                          padding= 'valid', data_format= None)(X)
+    X = Conv2D(96, kernel_size=(11,11), strides=4,
+                        padding='valid', activation='relu',
+                        kernel_initializer='he_normal', name='conv1')(X)
+    X = MaxPooling2D(pool_size=(3,3), strides=(2,2),
+                          padding='valid', data_format=None, name='pool1')(X)
 
     X = Conv2D(256, kernel_size=(5,5), strides= 1,
-                    padding= 'same', activation= 'relu',
-                    kernel_initializer='he_normal')(X)
-    X = MaxPooling2D(pool_size=(3,3), strides= (2,2),
-                          padding= 'valid', data_format= None)(X)
+                    padding= 'same', activation='relu',
+                    kernel_initializer='he_normal', name='conv2')(X)
+    X = MaxPooling2D(pool_size=(3,3), strides=(2,2),
+                          padding= 'valid', data_format=None, name='pool2')(X)
 
     X = Conv2D(384, kernel_size=(3,3), strides= 1,
                     padding= 'same', activation= 'relu',
-                    kernel_initializer='he_normal')(X)
+                    kernel_initializer='he_normal', name='conv3')(X)
 
     X = Conv2D(384, kernel_size=(3,3), strides= 1,
                     padding= 'same', activation= 'relu',
-                    kernel_initializer='he_normal')(X)
+                    kernel_initializer='he_normal', name='conv4')(X)
 
     X = Conv2D(256, kernel_size=(3,3), strides= 1,
                     padding= 'same', activation= 'relu',
-                    kernel_initializer='he_normal')(X)
+                    kernel_initializer='he_normal', name='conv5')(X)
 
     X = MaxPooling2D(pool_size=(3,3), strides= (2,2),
-                          padding= 'valid', data_format= None)(X)
+                          padding= 'valid', data_format=None, name='pool5')(X)
     
     X = Dropout(0.5)(X)
     X = Flatten()(X)
-    X = Dense(4096, activation= 'relu')(X)
+    X = Dense(4096, activation= 'relu', name='fc6')(X)
     X = Dropout(0.5)(X)
 
-    X = Dense(4096, activation= 'relu')(X)
-    X = Dense(1000, activation= 'relu')(X)
+    X = Dense(4096, activation= 'relu', name='fc7')(X)
+    
+    # May or may not be required to be removed
+    X = Dense(1000, activation= 'relu', name='fc8')(X)
 
-    X = Dense(NUM_CLASSES, activation= 'softmax')(X)
+    X = Dense(NUM_CLASSES, activation= 'softmax', name='fc9')(X)
 
     model = Model(inputs=input_x, outputs=X, name=model_name)
     
