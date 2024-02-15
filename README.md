@@ -47,6 +47,14 @@ While in this environment you can utilize the same packages that were utilized i
 
 `spyder`
 
+## Getting the Data
+
+The data is pulled from [Dataset Card for RVL-CDIP](https://huggingface.co/datasets/aharley/rvl_cdip) on Huggingface. Only the file for the images is needed: https://huggingface.co/datasets/aharley/rvl_cdip/blob/main/data/rvl-cdip.tar.gz
+
+```
+curl https://huggingface.co/datasets/aharley/rvl_cdip/blob/main/data/rvl-cdip.tar.gz
+```
+
 ## Using this repo
 Once you have your IDE and environment set up, you can easily run the files found in this repository. If you just run the file `model_training.py`, you will create all the necessary models and history files of the 5 model architectures. To change a few of the hyperparameters associated with the training and visualization process, please make the appropriate changes to the variables as per your own requirement. If you wish to retrain the models, you will need to delete the original models or change the directory stored in variables `MODEL_SAVE_PATH` and `HISTORY_SAVE_PATH` in the file `utils.py`.
 
