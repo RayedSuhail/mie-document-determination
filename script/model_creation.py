@@ -41,6 +41,22 @@ def reduce_size(matrix, target, axis):
     result = matrix.reshape(reshape_tuple).mean(axis=axis+1, dtype=np.float64)
     return result
 
+def upscale_matrix(matrix, target, axis):
+    if(len(matrix.shape) != 4):
+        raise ValueError("The matrix should have 4 indices")
+    result = np.zeros_like(target)
+    mat_axis = matrix.shape[axis]
+    target_axis = target.shape[axis]
+    multiples = target_axis // mat_axis
+    for i in range(matrix.shape[0]):
+        for j in range(matrix.shape[1]):
+            for k in range(0, matrix.shape[2], multiples):
+                for l in range(matrix.shape[3]):
+                    result[i][j][k][l] = matrix[i][j][k][l] / multiples
+                    result[i][j][k+1][l] = matrix[i][j][k][l] / multiples
+        
+    return result
+
 def load_pretrained_weights(base_model: str, model: keras.engine.functional.Functional) -> keras.engine.functional.Functional:
     if base_model == MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value:
         pass
@@ -55,11 +71,10 @@ def load_pretrained_weights(base_model: str, model: keras.engine.functional.Func
                 weights[0] = reduce_size(weights[0], model.get_layer(op_name).get_weights()[0], 0)
             if op_name == 'conv1':
                 weights[0] = reduce_size(weights[0], model.get_layer(op_name).get_weights()[0], 2)
+            if op_name == 'conv2' or op_name == 'conv5' or op_name == 'conv4':
+                weights[0] = upscale_matrix(weights[0], model.get_layer(op_name).get_weights()[0], 2)
             print(weights[0].shape)
             print(model.get_layer(op_name).get_weights()[0].shape)
-            if op_name == 'conv2' or op_name == 'conv5' or op_name == 'conv4':
-                continue
-            globals()[f'{op_name}_data'] = weights
             model.get_layer(op_name).set_weights(weights)
             model.get_layer(op_name).trainable = False
         return model
@@ -78,11 +93,7 @@ def create_siamese_network(base_model: str) -> keras.engine.functional.Functiona
         model = OS_CNN()
     elif base_model == MODELS_TYPES.ALEX_NET.value:
         model = AlexNet_CNN()
-        for layer in model.layers:
-            globals()[f'{layer.name}_unchanged'] = layer.get_weights()
         model = load_pretrained_weights(base_model, model)
-        for layer in model.layers:
-            globals()[f'{layer.name}_changed'] = layer.get_weights()
     elif base_model == MODELS_TYPES.VGG_NET_16.value:
         model = VGGNet_CNN()
     elif base_model == MODELS_TYPES.RES_NET_50.value:
@@ -189,8 +200,6 @@ def AlexNet_CNN(model_name: str = MODELS_TYPES.ALEX_NET.value) -> keras.engine.f
     model = Model(inputs=input_x, outputs=X, name=model_name)
     
     return model
-
-model = create_siamese_network(MODELS_TYPES.ALEX_NET.value)
 
 def VGGNet_CNN(model_name: str = MODELS_TYPES.VGG_NET_16.value) -> keras.engine.functional.Functional:
     input_x = Input(INPUT_SHAPE)
