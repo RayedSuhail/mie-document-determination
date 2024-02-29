@@ -35,11 +35,23 @@ This project aims to develop a deep learning network that utilizes a few-shot or
 - [ ] Record performance and visuals to be utilized in video
 
 ## Setting up Anaconda Environment
-To utilize the code written in this repo, please follow the following instructions for installing Anaconda and creating a conda environment for running the code by utilizing the provided `environment.yml` file. To start, you need to first use this [link](https://www.anaconda.com/download) to download the Anaconda installer. Follow the steps for your system provided in the [installation guide](https://docs.anaconda.com/free/anaconda/install/index.html) to set up Anaconda with a graphical interface. Once you have followed all the steps and successfully installed Anaconda in your system, open the Anaconda Prompt console. Using the console, navigate to where you cloned this repository and type the following command to create a duplicate virtual environment to the one that was used to train the model:
+To utilize the code written in this repo, please follow the following instructions for installing Anaconda and creating a conda environment for running the code by utilizing the provided `environment.yml` file. 
+
+1. Utilize the [link](https://www.anaconda.com/download) to install the Anaconda installer.
+
+![Red arrow pointing to Download button on Anaconda website](images/Anaconda_Download.png)
+
+2. Once the installer has been downloaded, utilize the [installation guide](https://docs.anaconda.com/free/anaconda/install/index.html) for your device and follow the steps provided on the page ([Windows](https://docs.anaconda.com/free/anaconda/install/windows/), [macOS](https://docs.anaconda.com/free/anaconda/install/mac-os/), [Linux](https://docs.anaconda.com/free/anaconda/install/linux/)).
+
+3. Once you have followed all the steps, [verify your installation](https://docs.anaconda.com/free/anaconda/install/verify-install/) of Anaconda by opening the Anaconda Prompt console (for Windows) or typing `conda list` in your terminal for Ubuntu or macOS.
+
+![Start Menu Anaconda Prompt](images/Start_Anaconda.png)
+
+4. Using the console, navigate to where you cloned this repository and type the following command to create a duplicate virtual environment to the one that was used to train the model:
 
 `conda env create -f environment.yml`
 
-Once the process completes, you can activate the environment by running the command:
+5. Once the process completes, you can activate the environment by running the command:
 
 `conda activate mieml`
 
@@ -53,6 +65,82 @@ The data is pulled from [Dataset Card for RVL-CDIP](https://huggingface.co/datas
 
 ```
 curl https://huggingface.co/datasets/aharley/rvl_cdip/blob/main/data/rvl-cdip.tar.gz
+```
+
+Unzip the `.tar` file into the `datasets/` folder such that the file structure looks as follows (`*` is a wildcard to represent lower-case alphabets from a-z):
+
+```bash
+│   .gitignore
+│   environment.yml
+│   README.md
+│
+├───dataset
+│   │   readme.txt
+│   │   rvl_cdip.py
+│   │
+│   ├───images
+│   │       images*
+│   │
+│   └───labels
+│           invalid_imgs.txt
+│           test.txt
+│           train.txt
+│           val.txt
+│
+├───results
+│   │   AlexNet_Siamese_history
+│   │   OneShot_Siamese_history
+│   │   ResNet_Siamese_history
+│   │   Siamese_Contrastive_Siamese_history
+│   │   VGGNet_Siamese_history
+│   │
+│   ├───AlexNet_Siamese
+│   │       Base_Model.png
+│   │       Model_Accuracy.png
+│   │       Model_Loss.png
+│   │       Model_Predictions.png
+│   │       Siamese_Model.png
+│   │
+│   ├───OneShot_Siamese
+│   │       Base_Model.png
+│   │       Model_Accuracy.png
+│   │       Model_Loss.png
+│   │       Model_Predictions.png
+│   │       Siamese_Model.png
+│   │
+│   ├───ResNet_Siamese
+│   │       Base_Model_1.png
+│   │       Base_Model_2.png
+│   │       Base_Model_3.png
+│   │       Base_Model_4.png
+│   │       Base_Model_5.png
+│   │       Base_Model_6.png
+│   │       Model_Accuracy.png
+│   │       Model_Loss.png
+│   │       Model_Predictions.png
+│   │       Siamese_Model.png
+│   │
+│   ├───Siamese_Contrastive_Siamese
+│   │       Base_Model.png
+│   │       Model_Accuracy.png
+│   │       Model_Loss.png
+│   │       Model_Predictions.png
+│   │       Siamese_Model.png
+│   │
+│   └───VGGNet_Siamese
+│           Base_Model.png
+│           Model_Accuracy.png
+│           Model_Loss.png
+│           Model_Predictions.png
+│           Siamese_Model.png
+│
+└───script
+        data_visualizers.py
+        image_loader.py
+        model_creation.py
+        model_training.py
+        training_helpers.py
+        utils.py
 ```
 
 ## Using this repo
