@@ -65,7 +65,6 @@ def load_pretrained_weights(base_model: str, model: keras.engine.functional.Func
     elif base_model == MODELS_TYPES.ALEX_NET.value:
         weights_dict = np.load('../models/trained_models/bvlc_alexnet.npy', allow_pickle=True, encoding='bytes').item()
         for op_name in weights_dict:
-            print(op_name)
             weights = weights_dict[op_name]
             if op_name == 'fc6':
                 weights[0] = reduce_size(weights[0], model.get_layer(op_name).get_weights()[0], 0)
@@ -73,18 +72,27 @@ def load_pretrained_weights(base_model: str, model: keras.engine.functional.Func
                 weights[0] = reduce_size(weights[0], model.get_layer(op_name).get_weights()[0], 2)
             if op_name == 'conv2' or op_name == 'conv5' or op_name == 'conv4':
                 weights[0] = upscale_matrix(weights[0], model.get_layer(op_name).get_weights()[0], 2)
-            print(weights[0].shape)
-            print(model.get_layer(op_name).get_weights()[0].shape)
             model.get_layer(op_name).set_weights(weights)
             model.get_layer(op_name).trainable = False
-        return model
     
     elif base_model == MODELS_TYPES.VGG_NET_16.value:
-        pass
+        weights_dict = np.load('../models/trained_models/vgg.npy', allow_pickle=True, encoding='bytes').item()
+        for op_name in weights_dict:
+            weights = weights_dict[op_name]
+            if op_name == 'block1_conv1':
+                weights[0] = reduce_size(weights[0], model.get_layer(op_name).get_weights()[0], 2)
+            if op_name == 'fc1':
+                # 25088 % 3072 = 512
+                weights[0] = reduce_size(weights[0], model.get_layer(op_name).get_weights()[0], 0)[:3072]
+            model.get_layer(op_name).set_weights(weights)
+            model.get_layer(op_name).trainable = False
+    
     elif base_model == MODELS_TYPES.RES_NET_50.value:
         pass
     else:
         raise TypeError('Wrong Model ID string')
+    
+    return model
 
 def create_siamese_network(base_model: str) -> keras.engine.functional.Functional:
     if base_model == MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value:
@@ -96,6 +104,7 @@ def create_siamese_network(base_model: str) -> keras.engine.functional.Functiona
         model = load_pretrained_weights(base_model, model)
     elif base_model == MODELS_TYPES.VGG_NET_16.value:
         model = VGGNet_CNN()
+        model = load_pretrained_weights(base_model, model)
     elif base_model == MODELS_TYPES.RES_NET_50.value:
         model = ResNet_CNN()
     else:
@@ -205,32 +214,32 @@ def VGGNet_CNN(model_name: str = MODELS_TYPES.VGG_NET_16.value) -> keras.engine.
     input_x = Input(INPUT_SHAPE)
 
     X = BatchNormalization()(input_x)
-    X = Conv2D(filters=64, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = Conv2D(filters=64, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = MaxPooling2D((2, 2))(X)
+    X = Conv2D(filters=64, kernel_size=(3,3), padding="same", activation="relu", name="block1_conv1")(X)
+    X = Conv2D(filters=64, kernel_size=(3,3), padding="same", activation="relu", name="block1_conv2")(X)
+    X = MaxPooling2D((2, 2), name="block1_pool")(X)
 
-    X = Conv2D(filters=128, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = Conv2D(filters=128, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = MaxPooling2D((2, 2))(X)
+    X = Conv2D(filters=128, kernel_size=(3,3), padding="same", activation="relu", name="block2_conv1")(X)
+    X = Conv2D(filters=128, kernel_size=(3,3), padding="same", activation="relu", name="block2_conv2")(X)
+    X = MaxPooling2D((2, 2), name="block2_pool")(X)
 
-    X = Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = MaxPooling2D((2, 2))(X)
+    X = Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu", name="block3_conv1")(X)
+    X = Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu", name="block3_conv2")(X)
+    X = Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu", name="block3_conv3")(X)
+    X = MaxPooling2D((2, 2), name="block3_pool")(X)
 
-    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = MaxPooling2D((2, 2))(X)
+    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu", name="block4_conv1")(X)
+    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu", name="block4_conv2")(X)
+    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu", name="block4_conv3")(X)
+    X = MaxPooling2D((2, 2), name="block4_pool")(X)
 
-    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu")(X)
-    X = MaxPooling2D((2, 2))(X)
+    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu", name="block5_conv1")(X)
+    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu", name="block5_conv2")(X)
+    X = Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu", name="block5_conv3")(X)
+    X = MaxPooling2D((2, 2), name="block5_pool")(X)
 
-    X = Flatten()(X)
-    X = Dense(4096, activation="relu")(X)
-    X = Dense(4096, activation="relu")(X)
+    X = Flatten(name="flatten")(X)
+    X = Dense(4096, activation="relu", name="fc1")(X)
+    X = Dense(4096, activation="relu", name="fc2")(X)
 
     X = Dense(NUM_CLASSES, activation="softmax")(X)
 
