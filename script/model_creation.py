@@ -61,12 +61,12 @@ def upscale_matrix(matrix, target, axis):
     return result
 
 def load_pretrained_weights(model: keras.engine.functional.Functional) -> keras.engine.functional.Functional:
+    weights_dict = np.load(WEIGHTS_PATH.format(model_name=model.name), allow_pickle=True, encoding='bytes').item()
     if model.name == MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value:
         pass
     elif model.name == MODELS_TYPES.ONE_SHOT_LEARNING.value:
         pass
     elif model.name == MODELS_TYPES.ALEX_NET.value:
-        weights_dict = np.load(WEIGHTS_PATH.format(model_name=model.name), allow_pickle=True, encoding='bytes').item()
         for op_name in weights_dict:
             weights = weights_dict[op_name]
             if op_name == 'fc6':
@@ -79,7 +79,6 @@ def load_pretrained_weights(model: keras.engine.functional.Functional) -> keras.
             model.get_layer(op_name).trainable = False
     
     elif model.name == MODELS_TYPES.VGG_NET_16.value:
-        weights_dict = np.load(WEIGHTS_PATH.format(model_name=model.name), allow_pickle=True, encoding='bytes').item()
         for op_name in weights_dict:
             weights = weights_dict[op_name]
             if op_name == 'block1_conv1':
@@ -91,7 +90,6 @@ def load_pretrained_weights(model: keras.engine.functional.Functional) -> keras.
             model.get_layer(op_name).trainable = False
     
     elif model.name == MODELS_TYPES.RES_NET_50.value:
-        weights_dict = np.load(WEIGHTS_PATH.format(model_name=model.name), allow_pickle=True, encoding='bytes').item()
         for op_name in weights_dict:
             weights = weights_dict[op_name]
             if op_name == 'conv1_conv':
@@ -154,10 +152,10 @@ def create_siamese_network(base_model: str) -> keras.engine.functional.Functiona
         raise TypeError('Wrong Model ID string')
         
     if not os.path.exists(WEIGHTS_PATH.format(model_name=model.name)):
-        try:  
-            os.mkdir(os.path.abspath('../models/trained_models'))  
-        except OSError as error:  
-            print(error) 
+        if not os.path.exists('../models'):
+            os.mkdir(os.path.abspath('../models'))
+        if not os.path.exists('../models/trained_models'):
+            os.mkdir(os.path.abspath('../models/trained_models'))
         create_model_weights(model.name)
     
     model = load_pretrained_weights(model)
