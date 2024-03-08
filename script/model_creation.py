@@ -6,16 +6,19 @@ Created on Fri Jul 10 11:02:04 2023
 """
 import tensorflow as tf
 import numpy as np
+import os
 
 import keras
 from keras.models import Model
 from keras.layers import Dense, BatchNormalization, Add, Input
 from keras.layers import Dropout, Flatten, Activation
-from keras.layers import Conv2D, MaxPooling2D, AveragePooling2D
+from keras.layers import Conv2D, MaxPooling2D, AveragePooling2D, GlobalAveragePooling2D
 from keras.layers import Lambda
 from keras.regularizers import l2
 
-from utils import INPUT_SHAPE, NUM_CLASSES, MODELS_TYPES
+import keras.applications as ka
+
+from utils import INPUT_SHAPE, NUM_CLASSES, MODELS_TYPES, WEIGHTS_PATH
 
 def euclidean_distance(vects):
     """Find the Euclidean distance between two vectors.
@@ -57,13 +60,13 @@ def upscale_matrix(matrix, target, axis):
         
     return result
 
-def load_pretrained_weights(base_model: str, model: keras.engine.functional.Functional) -> keras.engine.functional.Functional:
-    if base_model == MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value:
+def load_pretrained_weights(model: keras.engine.functional.Functional) -> keras.engine.functional.Functional:
+    if model.name == MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value:
         pass
-    elif base_model == MODELS_TYPES.ONE_SHOT_LEARNING.value:
+    elif model.name == MODELS_TYPES.ONE_SHOT_LEARNING.value:
         pass
-    elif base_model == MODELS_TYPES.ALEX_NET.value:
-        weights_dict = np.load('../models/trained_models/bvlc_alexnet.npy', allow_pickle=True, encoding='bytes').item()
+    elif model.name == MODELS_TYPES.ALEX_NET.value:
+        weights_dict = np.load(WEIGHTS_PATH.format(model_name=model.name), allow_pickle=True, encoding='bytes').item()
         for op_name in weights_dict:
             weights = weights_dict[op_name]
             if op_name == 'fc6':
@@ -75,8 +78,8 @@ def load_pretrained_weights(base_model: str, model: keras.engine.functional.Func
             model.get_layer(op_name).set_weights(weights)
             model.get_layer(op_name).trainable = False
     
-    elif base_model == MODELS_TYPES.VGG_NET_16.value:
-        weights_dict = np.load('../models/trained_models/vgg.npy', allow_pickle=True, encoding='bytes').item()
+    elif model.name == MODELS_TYPES.VGG_NET_16.value:
+        weights_dict = np.load(WEIGHTS_PATH.format(model_name=model.name), allow_pickle=True, encoding='bytes').item()
         for op_name in weights_dict:
             weights = weights_dict[op_name]
             if op_name == 'block1_conv1':
@@ -87,12 +90,54 @@ def load_pretrained_weights(base_model: str, model: keras.engine.functional.Func
             model.get_layer(op_name).set_weights(weights)
             model.get_layer(op_name).trainable = False
     
-    elif base_model == MODELS_TYPES.RES_NET_50.value:
-        pass
+    elif model.name == MODELS_TYPES.RES_NET_50.value:
+        weights_dict = np.load(WEIGHTS_PATH.format(model_name=model.name), allow_pickle=True, encoding='bytes').item()
+        for op_name in weights_dict:
+            weights = weights_dict[op_name]
+            if op_name == 'conv1_conv':
+                weights[0] = reduce_size(weights[0], model.get_layer(op_name).get_weights()[0], 2)
+            model.get_layer(op_name).set_weights(weights)
+            model.get_layer(op_name).trainable = False
     else:
         raise TypeError('Wrong Model ID string')
     
     return model
+
+def create_model_weights(model_name: str):
+    if model_name == MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value:
+        return
+    elif model_name == MODELS_TYPES.ONE_SHOT_LEARNING.value:
+        return
+    elif model_name == MODELS_TYPES.ALEX_NET.value:
+        tf.keras.utils.get_file(fname=os.path.abspath(WEIGHTS_PATH.format(model_name=model_name)),
+                                origin='https://www.cs.toronto.edu/%7Eguerzhoy/tf_alexnet/bvlc_alexnet.npy')
+        return
+    elif model_name == MODELS_TYPES.VGG_NET_16.value:
+        weight_model = ka.vgg16.VGG16(
+            include_top=True,
+            weights="imagenet",
+            input_tensor=None,
+            input_shape=None,
+            pooling=None,
+            classes=1000,
+            classifier_activation="softmax",
+        )
+    elif model_name == MODELS_TYPES.RES_NET_50.value:
+        weight_model = ka.resnet.ResNet50(
+            include_top=True,
+            weights="imagenet",
+            input_tensor=None,
+            input_shape=None,
+            pooling=None,
+            classes=1000,
+            classifier_activation="softmax",
+        )
+    if not (model_name == MODELS_TYPES.ALEX_NET.value and model_name == MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value):
+        weight_dict = {}
+        for layer in weight_model.layers:
+            if (len(weight_model.get_layer(layer.name).get_weights()) != 0) and ('predictions' not in layer.name):
+                weight_dict[layer.name] = weight_model.get_layer(layer.name).get_weights()
+        np.save(WEIGHTS_PATH.format(model_name=model_name), weight_dict)
 
 def create_siamese_network(base_model: str) -> keras.engine.functional.Functional:
     if base_model == MODELS_TYPES.KERAS_SIAMESE_CONTRASTIVE.value:
@@ -101,14 +146,21 @@ def create_siamese_network(base_model: str) -> keras.engine.functional.Functiona
         model = OS_CNN()
     elif base_model == MODELS_TYPES.ALEX_NET.value:
         model = AlexNet_CNN()
-        model = load_pretrained_weights(base_model, model)
     elif base_model == MODELS_TYPES.VGG_NET_16.value:
         model = VGGNet_CNN()
-        model = load_pretrained_weights(base_model, model)
     elif base_model == MODELS_TYPES.RES_NET_50.value:
         model = ResNet_CNN()
     else:
         raise TypeError('Wrong Model ID string')
+        
+    if not os.path.exists(WEIGHTS_PATH.format(model_name=model.name)):
+        try:  
+            os.mkdir(os.path.abspath('../models/trained_models'))  
+        except OSError as error:  
+            print(error) 
+        create_model_weights(model.name)
+    
+    model = load_pretrained_weights(model)
     
     input_l = Input(INPUT_SHAPE)
     input_r = Input(INPUT_SHAPE)
@@ -249,53 +301,52 @@ def VGGNet_CNN(model_name: str = MODELS_TYPES.VGG_NET_16.value) -> keras.engine.
 
 def identity_block(X, f, filters, stage, block) -> keras.engine.functional.Functional:
    
-    conv_name_base = 'res' + str(stage) + block + '_branch'
-    bn_name_base = 'bn' + str(stage) + block + '_branch'
+    name_base = 'conv' + stage + '_block' + block
+    
     F1, F2, F3 = filters
 
     X_shortcut = X
    
-    X = Conv2D(filters=F1, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=conv_name_base + '2a')(X)
-    X = BatchNormalization(axis=3, name=bn_name_base + '2a')(X)
-    X = Activation('relu')(X)
+    X = Conv2D(filters=F1, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=name_base + '_1_conv')(X)
+    X = BatchNormalization(axis=3, name=name_base + '_1_bn')(X)
+    X = Activation('relu', name=name_base + '_1_relu')(X)
 
-    X = Conv2D(filters=F2, kernel_size=(f, f), strides=(1, 1), padding='same', name=conv_name_base + '2b')(X)
-    X = BatchNormalization(axis=3, name=bn_name_base + '2b')(X)
-    X = Activation('relu')(X)
+    X = Conv2D(filters=F2, kernel_size=(f, f), strides=(1, 1), padding='same', name=name_base + '_2_conv')(X)
+    X = BatchNormalization(axis=3, name=name_base + '_2_bn')(X)
+    X = Activation('relu', name=name_base + '_2_relu')(X)
 
-    X = Conv2D(filters=F3, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=conv_name_base + '2c')(X)
-    X = BatchNormalization(axis=3, name=bn_name_base + '2c')(X)
+    X = Conv2D(filters=F3, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=name_base + '_3_conv')(X)
+    X = BatchNormalization(axis=3, name=name_base + '_3_bn')(X)
 
-    X = Add()([X, X_shortcut])# SKIP Connection
-    X = Activation('relu')(X)
+    X = Add(name=name_base + '_add')([X, X_shortcut])# SKIP Connection
+    X = Activation('relu', name=name_base + '_out')(X)
 
     return X
 
 def convolutional_block(X, f, filters, stage, block, s=2) -> keras.engine.functional.Functional:
    
-    conv_name_base = 'res' + str(stage) + block + '_branch'
-    bn_name_base = 'bn' + str(stage) + block + '_branch'
+    name_base = 'conv' + stage + '_block' + block
 
     F1, F2, F3 = filters
 
     X_shortcut = X
 
-    X = Conv2D(filters=F1, kernel_size=(1, 1), strides=(s, s), padding='valid', name=conv_name_base + '2a')(X)
-    X = BatchNormalization(axis=3, name=bn_name_base + '2a')(X)
-    X = Activation('relu')(X)
+    X = Conv2D(filters=F1, kernel_size=(1, 1), strides=(s, s), padding='valid', name=name_base + '_1_conv')(X)
+    X = BatchNormalization(axis=3, name=name_base + '_1_bn')(X)
+    X = Activation('relu', name=name_base + '_1_relu')(X)
 
-    X = Conv2D(filters=F2, kernel_size=(f, f), strides=(1, 1), padding='same', name=conv_name_base + '2b')(X)
-    X = BatchNormalization(axis=3, name=bn_name_base + '2b')(X)
-    X = Activation('relu')(X)
+    X = Conv2D(filters=F2, kernel_size=(f, f), strides=(1, 1), padding='same', name=name_base + '_2_conv')(X)
+    X = BatchNormalization(axis=3, name=name_base + '_2_bn')(X)
+    X = Activation('relu', name=name_base + '_2_relu')(X)
 
-    X = Conv2D(filters=F3, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=conv_name_base + '2c')(X)
-    X = BatchNormalization(axis=3, name=bn_name_base + '2c')(X)
+    X = Conv2D(filters=F3, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=name_base + '_3_conv')(X)
+    X = BatchNormalization(axis=3, name=name_base + '_3_bn')(X)
 
-    X_shortcut = Conv2D(filters=F3, kernel_size=(1, 1), strides=(s, s), padding='valid', name=conv_name_base + '1')(X_shortcut)
-    X_shortcut = BatchNormalization(axis=3, name=bn_name_base + '1')(X_shortcut)
+    X_shortcut = Conv2D(filters=F3, kernel_size=(1, 1), strides=(s, s), padding='valid', name=name_base + '_0_conv')(X_shortcut)
+    X_shortcut = BatchNormalization(axis=3, name=name_base + '_0_bn')(X_shortcut)
 
-    X = Add()([X, X_shortcut])
-    X = Activation('relu')(X)
+    X = Add(name=name_base + '_add')([X, X_shortcut])
+    X = Activation('relu', name=name_base + '_out')(X)
 
     return X
 
@@ -303,33 +354,33 @@ def convolutional_block(X, f, filters, stage, block, s=2) -> keras.engine.functi
 def ResNet_CNN(model_name: str = MODELS_TYPES.RES_NET_50.value) -> keras.engine.functional.Functional:
     input_x = Input(INPUT_SHAPE)
 
-    X = Conv2D(64, (7, 7), strides=(2, 2), name='conv1')(input_x)
-    X = BatchNormalization(axis=3, name='bn_conv1')(X)
-    X = Activation('relu')(X)
-    X = MaxPooling2D((3, 3), strides=(2, 2))(X)
+    X = Conv2D(64, (7, 7), strides=(2, 2), name='conv1_conv')(input_x)
+    X = BatchNormalization(axis=3, name='conv1_bn')(X)
+    X = Activation('relu', name='conv1_relu')(X)
+    X = MaxPooling2D((3, 3), strides=(2, 2), name='pool1_pool')(X)
 
-    X = convolutional_block(X, f=3, filters=[64, 64, 256], stage=2, block='a', s=1)
-    X = identity_block(X, 3, [64, 64, 256], stage=2, block='b')
-    X = identity_block(X, 3, [64, 64, 256], stage=2, block='c')
+    X = convolutional_block(X, f=3, filters=[64, 64, 256], stage='2', block='1', s=1)
+    X = identity_block(X, 3, [64, 64, 256], stage='2', block='2')
+    X = identity_block(X, 3, [64, 64, 256], stage='2', block='3')
 
 
-    X = convolutional_block(X, f=3, filters=[128, 128, 512], stage=3, block='a', s=2)
-    X = identity_block(X, 3, [128, 128, 512], stage=3, block='b')
-    X = identity_block(X, 3, [128, 128, 512], stage=3, block='c')
-    X = identity_block(X, 3, [128, 128, 512], stage=3, block='d')
+    X = convolutional_block(X, f=3, filters=[128, 128, 512], stage='3', block='1', s=2)
+    X = identity_block(X, 3, [128, 128, 512], stage='3', block='2')
+    X = identity_block(X, 3, [128, 128, 512], stage='3', block='3')
+    X = identity_block(X, 3, [128, 128, 512], stage='3', block='4')
 
-    X = convolutional_block(X, f=3, filters=[256, 256, 1024], stage=4, block='a', s=2)
-    X = identity_block(X, 3, [256, 256, 1024], stage=4, block='b')
-    X = identity_block(X, 3, [256, 256, 1024], stage=4, block='c')
-    X = identity_block(X, 3, [256, 256, 1024], stage=4, block='d')
-    X = identity_block(X, 3, [256, 256, 1024], stage=4, block='e')
-    X = identity_block(X, 3, [256, 256, 1024], stage=4, block='f')
+    X = convolutional_block(X, f=3, filters=[256, 256, 1024], stage='4', block='1', s=2)
+    X = identity_block(X, 3, [256, 256, 1024], stage='4', block='2')
+    X = identity_block(X, 3, [256, 256, 1024], stage='4', block='3')
+    X = identity_block(X, 3, [256, 256, 1024], stage='4', block='4')
+    X = identity_block(X, 3, [256, 256, 1024], stage='4', block='5')
+    X = identity_block(X, 3, [256, 256, 1024], stage='4', block='6')
 
-    X = convolutional_block(X, f=3, filters=[512, 512, 2048], stage=5, block='a', s=2)
-    X = identity_block(X, 3, [512, 512, 2048], stage=5, block='b')
-    X = identity_block(X, 3, [512, 512, 2048], stage=5, block='c')
+    X = convolutional_block(X, f=3, filters=[512, 512, 2048], stage='5', block='1', s=2)
+    X = identity_block(X, 3, [512, 512, 2048], stage='5', block='2')
+    X = identity_block(X, 3, [512, 512, 2048], stage='5', block='3')
 
-    X = AveragePooling2D(pool_size=(2, 2), padding='same')(X)
+    X = GlobalAveragePooling2D(name='avg_pool')(X)
 
     X = Flatten()(X)
     X = Dense(256, activation='relu', name='fc1')(X)

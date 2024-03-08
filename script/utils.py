@@ -34,6 +34,8 @@ FORBIDDEN_LIST_PATH = '../dataset/labels/invalid_imgs.txt'
 # =============================================================================
 INPUT_SHAPE = (100, 75, 1)
 NUM_CLASSES = 16
+WEIGHTS_PATH = '../models/trained_models/{model_name}.npy'
+
 class MODELS_TYPES(BaseEnum):
     KERAS_SIAMESE_CONTRASTIVE = 'Siamese_Contrastive'
     ONE_SHOT_LEARNING = 'OneShot'
