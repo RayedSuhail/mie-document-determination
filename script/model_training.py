@@ -8,7 +8,6 @@ Created on Fri Jul 18 21:38:20 2023
 import pickle
 import multiprocessing
 import os
-import keras
 
 from training_helpers import get_train_test_val, loss, model_checkpoint
 from model_creation import create_siamese_network
@@ -16,7 +15,8 @@ from data_visualizers import display_model_info, visualize
 from image_loader import DataGenerator
 
 from utils import MODELS_TYPES, MODEL_SAVE_PATH, HISTORY_SAVE_PATH, MONITORING_METRIC, BATCH_SIZE, EPOCHS, MARGIN
-    
+
+
 def run_training_process(model: MODELS_TYPES):
     pairs_train, labels_train, pairs_val, labels_val, pairs_test, labels_test = get_train_test_val()
 
@@ -26,7 +26,7 @@ def run_training_process(model: MODELS_TYPES):
 
     model_path = MODEL_SAVE_PATH.format(model_name=siamese.name)
     
-    if os.path.exists(f'{model_path}.index'):
+    if os.path.exists(model_path):
         siamese.load_weights(model_path)
         display_model_info(siamese, pairs_test, labels_test)
         return

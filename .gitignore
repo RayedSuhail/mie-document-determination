@@ -1,3 +1,5 @@
 dataset/images/*
+models/
+delete/
 
 script/__pycache__

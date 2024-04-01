@@ -52,7 +52,7 @@ class IMAGE_TYPES(BaseEnum):
     MODEL_PREDICTIONS = 'Model_Predictions'
     PAIR_VISUALIZATION = 'Pair_Visualization'
 
-MODEL_SAVE_PATH = '../models/{model_name}/model_final'
+MODEL_SAVE_PATH = '../models/{model_name}/model_final.h5'
 HISTORY_SAVE_PATH = '../results/{model_name}_history'
 IMAGE_SAVE_PATH = '../results/{model_name}/{image_type}.png'
 MONITORING_METRIC = 'accuracy'
